@@ -1,0 +1,16 @@
+{
+    "configurations": [
+        {
+            "name": "Kubernetes: Run/Debug - cloudbuild",
+            "type": "cloudcode.kubernetes",
+            "request": "launch",
+            "skaffoldConfig": "${workspaceFolder}/skaffold.yaml",
+            "profile": "cloudbuild",
+            "watch": true,
+            "cleanUp": false,
+            "portForward": true,
+            "internalConsoleOptions": "neverOpen",
+            "imageRegistry": "us-east1-docker.pkg.dev/cloud-code-demo-360914/repo"
+        }
+    ]
+}

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: orders-frontend
+  labels:
+    app: orders
+    tier: frontend
+spec:
+  type: LoadBalancer
+  selector:
+    app: orders
+    tier: frontend
+  ports:
+  - port: 80
+    targetPort: http-server

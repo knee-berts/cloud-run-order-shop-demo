@@ -1,0 +1,8 @@
+{
+    "OrderId": 111,
+	"ProductId": 50,
+	"CustomerId": 103,
+	"Quantity": 7,
+	"Status": "SUBMITTED",
+	"FulfillmentHub": "NYC"
+}

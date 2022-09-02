@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orders-job
+  labels:
+    app: orders
+    tier: job
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: orders
+      tier: job
+  template:
+    metadata:
+      labels:
+        app: orders
+        tier: job
+    spec:
+      containers:
+      - name: job
+        image: us-east1-docker.pkg.dev/cloud-code-demo-360914/repo/orders-job
+        ports:
+        - name: debug
+          containerPort: 3000
+        env:
+        - name: SPANNER_URI
+          value: "projects/cloud-code-demo-360914/instances/nick-spanner/databases/nickdb"
