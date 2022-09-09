@@ -18,7 +18,7 @@ spec:
         tier: job
     spec:
       containers:
-      - name: frontend
+      - name: job
         image: orders-job
         ports:
         - name: debug

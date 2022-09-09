@@ -94,3 +94,6 @@ gcloud scheduler jobs create http orders-job-us-east1 \
   --oauth-service-account-email ${PROJECT_NUMBER}-compute@developer.gserviceaccount.com
     # --tasks 100 \
     # --parallelism 100 
+
+while true; do curl -s "https://orders-app.endpoints.cloud-code-demo-360914.cloud.goog/submittedOrders";echo ""; sleep 1; done
+while true; do curl -s -X PUT "https://orders-app.endpoints.cloud-code-demo-360914.cloud.goog/addRandomOrder";echo ""; sleep 1; done

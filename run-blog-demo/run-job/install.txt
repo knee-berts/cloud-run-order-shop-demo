@@ -1,1 +1,0 @@
-gcloud builds submit --pack image=gcr.io/seroter-project-base/seroter-run-job

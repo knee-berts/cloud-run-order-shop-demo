@@ -8,6 +8,7 @@ require (
 	github.com/joho/godotenv v1.4.0
 	github.com/labstack/echo/v4 v4.7.2
 	google.golang.org/api v0.80.0
+	google.golang.org/grpc v1.47.0
 )
 
 require (
@@ -42,6 +43,5 @@ require (
 	golang.org/x/xerrors v0.0.0-20220517211312-f3a8303e98df // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20220607140733-d738665f6195 // indirect
-	google.golang.org/grpc v1.47.0 // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
 )

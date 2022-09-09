@@ -2,7 +2,9 @@ package web
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
 	"strconv"
 	"time"
@@ -11,6 +13,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v4"
 	"google.golang.org/api/iterator"
+	"google.golang.org/grpc/codes"
 	"seroter.com/serotershop/config"
 	"seroter.com/serotershop/model"
 	"seroter.com/serotershop/responses"
@@ -18,8 +21,6 @@ import (
 
 //https://cloud.google.com/spanner/docs/getting-started/go#read_data_using_the_read_api
 //https://pkg.go.dev/cloud.google.com/go/spanner#section-readme
-
-var validate = validator.New()
 
 func GetOrders() []*model.Order {
 
@@ -34,6 +35,7 @@ func GetOrders() []*model.Order {
 
 	//set up context and client
 	ctx := context.Background()
+	// client := createSpannerClient(ctx)
 	db := config.EnvSpannerURI()
 	client, err := spanner.NewClient(ctx, db)
 	if err != nil {
@@ -44,9 +46,9 @@ func GetOrders() []*model.Order {
 
 	stmt := spanner.Statement{
 		SQL: `SELECT OrderId, ProductId, CustomerId, Quantity, Status, OrderDate, FulfillmentHub, LastUpdateTime
-						FROM Orders ORDER BY LastUpdateTime DESC`}
+				FROM Orders ORDER BY LastUpdateTime DESC LIMIT 20`}
+	// iter := client.Single().Read(ctx, "Orders", spanner.AllKeys(), []string{"OrderId", "ProductId", "CustomerId", "Quantity", "Status", "OrderDate", "FulfillmentHub", "LastUpdateTime"})
 	iter := client.Single().Query(ctx, stmt)
-	// iter := client.Single().Read(ctx, "Orders", spanner.AllKeys(), []string{"OrderId", "ProductId", "CustomerId", "Quantity", "Status", "OrderDate", "FulfillmentHub", "LastUpdateTime.String()"})
 
 	defer iter.Stop()
 
@@ -59,47 +61,15 @@ func GetOrders() []*model.Order {
 			log.Println(e)
 		}
 
-		var orderId, productId, customerId, quantity int64
-		var status, orderDate, fulfillmentHub string
-		var lastUpdateTime spanner.NullTime
-
 		//create object for each row
 		o := new(model.Order)
 
-		if err := row.ColumnByName("OrderId", &orderId); err != nil {
-			log.Println(err)
+		//load row into struct that maps to same shape
+		rerr := row.ToStruct(o)
+		if rerr != nil {
+			log.Println(rerr)
 		}
-		o.OrderId = orderId
-		if err := row.ColumnByName("ProductId", &productId); err != nil {
-			log.Println(err)
-		}
-		o.ProductId = productId
-		if err := row.ColumnByName("CustomerId", &customerId); err != nil {
-			log.Println(err)
-		}
-		o.CustomerId = customerId
-		if err := row.ColumnByName("Quantity", &quantity); err != nil {
-			log.Println(err)
-		}
-		o.Quantity = quantity
-		if err := row.ColumnByName("Status", &status); err != nil {
-			log.Println(err)
-		}
-		o.Status = status
-		if err := row.ColumnByName("OrderDate", &orderDate); err != nil {
-			log.Println(err)
-		}
-		o.OrderDate = orderDate
-		if err := row.ColumnByName("FulfillmentHub", &fulfillmentHub); err != nil {
-			log.Println(err)
-		}
-		o.FulfillmentHub = fulfillmentHub
-		if e := row.ColumnByName("LastUpdateTime", &lastUpdateTime); e != nil {
-			log.Println(err)
-		}
-		o.LastUpdateTime = lastUpdateTime.String()
 
-		log.Println(o.OrderId)
 		//append to collection
 		data = append(data, o)
 
@@ -136,18 +106,20 @@ func AddOrder(c echo.Context) {
 	order.FulfillmentHub = c.FormValue("hub")
 	order.OrderDate = time.Now().Format("2006-01-02")
 
-	//set up context and client
-	// ctx := context.Background()
-
 	if err := updateOrder(ctx, order); err != nil {
+		if spanner.ErrCode(err) == codes.AlreadyExists {
+			insertOrderHistory(ctx, order)
+			log.Printf("Order %v already exists: %v", order.OrderId, err)
+		}
 		log.Println(err)
 	}
 }
 
 func AddOrderApi(c echo.Context) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	var order model.Order
 	defer cancel()
+
+	var order model.Order
 
 	//validate the request body
 	if err := c.Bind(&order); err != nil {
@@ -157,36 +129,59 @@ func AddOrderApi(c echo.Context) error {
 	order.OrderDate = time.Now().Format("2006-01-02")
 
 	//use the validator library to validate required fields
+	var validate = validator.New()
 	if validationErr := validate.Struct(&order); validationErr != nil {
 		return c.JSON(http.StatusBadRequest, responses.OrderResponse{Status: http.StatusBadRequest, Message: "error", Data: validationErr.Error()})
 	}
 	if err := updateOrder(ctx, order); err != nil {
+		if spanner.ErrCode(err) == codes.AlreadyExists {
+			insertOrderHistory(ctx, order)
+			return c.JSON(http.StatusBadRequest, responses.OrderResponse{Status: http.StatusBadRequest, Message: "error", Data: err.Error()})
+		}
 		return c.JSON(http.StatusBadRequest, responses.OrderResponse{Status: http.StatusBadRequest, Message: "error", Data: err.Error()})
 	}
-	return c.JSON(http.StatusCreated, responses.OrderResponse{Status: http.StatusCreated, Message: "success", Data: "Order updated"})
+	return c.JSON(http.StatusCreated, responses.OrderResponse{Status: http.StatusCreated, Message: "success", Data: fmt.Sprintf("Order %v was created.", order.OrderId)})
 }
 
-func updateOrder(ctx context.Context, order model.Order) error {
-	//set up context and client
-	// ctx := context.Background()
-	db := config.EnvSpannerURI()
-	client, err := spanner.NewClient(ctx, db)
+func GetSubmittedOrdersCount(c echo.Context) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 999*time.Second)
+	defer cancel()
+	status := c.Param("status")
+	log.Println(status)
+	orders, err := ordersCountByStatus(ctx, status)
 	if err != nil {
-		log.Fatal(err)
+		return c.JSON(http.StatusBadRequest, responses.OrderResponse{Status: http.StatusBadRequest, Message: "error", Data: err.Error()})
 	}
+	return c.JSON(http.StatusOK, orders)
+}
 
-	defer client.Close()
+func AddRandomOrder(c echo.Context) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	var order model.Order
+	defer cancel()
+	//need "name" value set on form field, not just ID
+	//retrieve values
+	rand.Seed(time.Now().UnixNano())
+	order.OrderId = rand.Int63n(1000)
+	order.ProductId = rand.Int63n(1000)
+	order.CustomerId = rand.Int63n(1000)
+	order.Quantity = rand.Int63n(1000)
+	order.Status = "SUBMITTED"
+	order.FulfillmentHub = "NYC"
+	order.OrderDate = time.Now().Format("2006-01-02")
+	log.Println(order.OrderId)
 
-	//do database write
-	ordersColumns := []string{"OrderId", "ProductId", "CustomerId", "Quantity", "Status", "FulfillmentHub", "OrderDate", "LastUpdateTime"}
-	ordersHistoryColumns := []string{"OrderId", "ProductId", "CustomerId", "Quantity", "Status", "FulfillmentHub", "OrderDate", "TimeStamp"}
-	m := []*spanner.Mutation{
-		spanner.InsertOrUpdate("Orders", ordersColumns, []interface{}{order.OrderId, order.ProductId, order.CustomerId, order.Quantity, order.Status, order.FulfillmentHub, order.OrderDate, spanner.CommitTimestamp}),
-		spanner.InsertOrUpdate("OrdersHistory", ordersHistoryColumns, []interface{}{order.OrderId, order.ProductId, order.CustomerId, order.Quantity, order.Status, order.FulfillmentHub, order.OrderDate, spanner.CommitTimestamp}),
+	var validate = validator.New()
+	if validationErr := validate.Struct(&order); validationErr != nil {
+		return c.JSON(http.StatusBadRequest, responses.OrderResponse{Status: http.StatusBadRequest, Message: "error", Data: validationErr.Error()})
 	}
-	_, err = client.Apply(ctx, m)
-	if err != nil {
-		log.Println(err)
+	if err := updateOrder(ctx, order); err != nil {
+		if spanner.ErrCode(err) == codes.AlreadyExists {
+			insertOrderHistory(ctx, order)
+			return c.JSON(http.StatusBadRequest, responses.OrderResponse{Status: http.StatusBadRequest, Message: "error", Data: err.Error()})
+		}
+		return c.JSON(http.StatusBadRequest, responses.OrderResponse{Status: http.StatusBadRequest, Message: "error", Data: err.Error()})
 	}
-	return err
+	return c.JSON(http.StatusCreated, responses.OrderResponse{Status: http.StatusCreated, Message: "success", Data: fmt.Sprintf("Order %v was created.", order.OrderId)})
+
 }

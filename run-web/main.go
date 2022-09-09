@@ -22,7 +22,9 @@ func main() {
 
 	e.GET("/", web.GetHome)
 	e.POST("/", web.NewOrder)
-	e.POST("addOrder", web.AddOrderApi)
+	e.POST("/addOrder", web.AddOrderApi)
+	e.PUT("/addRandomOrder", web.AddRandomOrder)
+	e.GET("/submittedOrders/:status", web.GetSubmittedOrdersCount)
 
 	t := &web.Template{
 		Templates: template.Must(template.ParseGlob("web/index.html")),

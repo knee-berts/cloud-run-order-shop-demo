@@ -40,6 +40,7 @@ public class InsertOrderAsync
         var historyCommand = connection.CreateInsertCommand("OrdersHistory", 
                 new SpannerParameterCollection {
                     { "OrderId", SpannerDbType.Int64, orderId },
+                    { "Status", SpannerDbType.String, "SHIPPED" },
                     { "TimeStamp", SpannerDbType.Timestamp, SpannerParameter.CommitTimestamp } } );
 
         await connection.RunWithRetriableTransactionAsync(async transaction =>

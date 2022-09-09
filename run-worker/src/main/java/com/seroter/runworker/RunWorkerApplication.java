@@ -34,6 +34,13 @@ public class RunWorkerApplication {
 				} catch (SQLException e) {
 					System.out.println(e.toString());
 				}
+
+				try (Connection c = DriverManager.getConnection(connectionUrl); Statement statement = c.createStatement()) {
+					String command = String.format("INSERT INTO OrdersHistory (OrderId, Status, LastUpdateTime) Values (%d, 'DELIVERED', PENDING_COMMIT_TIMESTAMP()");
+					statement.executeUpdate(command);
+				} catch (SQLException e) {
+					System.out.println(e.toString());
+				}
 			});
 	}
 }
