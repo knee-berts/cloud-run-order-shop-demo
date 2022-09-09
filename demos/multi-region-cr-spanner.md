@@ -87,3 +87,8 @@ gcloud spanner databases execute-sql --instance orders-${PROJECT_ID} orders-db \
 ```
 You should see something like this.
 ![screenshot2](../assets/screenshot2.png)
+
+7. **Throw some load at it by using [hey](https://github.com/rakyll/hey) to call the random orders generator api**
+```bash
+hey -m PUT https://orders-app.endpoints.${PROJECT_ID}.cloud.goog/addRandomOrder
+```
