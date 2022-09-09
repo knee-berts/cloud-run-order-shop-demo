@@ -1,8 +1,0 @@
-{
-    "OrderId": "_randomInt",
-	"ProductId": "_randomInt",
-	"CustomerId": "_randomInt",
-	"Quantity": "_randomInt",
-	"Status": "SUBMITTED",
-	"FulfillmentHub": "_randomCountryCode"
-}

@@ -8,7 +8,7 @@ build:
   local:
     push: false
     concurrency: 0
-profiles:
-- name: cloudbuild
-  build:
-    local: {}
+# profiles:
+# - name: cloudbuild
+#   build:
+#     local: {}

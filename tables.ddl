@@ -7,7 +7,7 @@ CREATE TABLE Orders (
     FulfillmentHub STRING(3),
     LastUpdateTime TIMESTAMP NOT NULL OPTIONS(allow_commit_timestamp=true),
     Status STRING(20),
-) PRIMARY KEY(OrderId)
+) PRIMARY KEY(OrderId);
 
 CREATE TABLE OrdersHistory (
     OrderId INT64 NOT NULL,    
@@ -19,6 +19,4 @@ CREATE TABLE OrdersHistory (
     TimeStamp TIMESTAMP NOT NULL OPTIONS(allow_commit_timestamp=true),
     Status STRING(20),
 ) PRIMARY KEY(OrderId, TimeStamp),
-INTERLEAVE IN PATENT Orders ON DELETE NO ACTION;
-
-gcloud builds submit --pack image=gcr.io/seroter-project-base/seroter-run-web
+INTERLEAVE IN PARENT Orders ON DELETE NO ACTION

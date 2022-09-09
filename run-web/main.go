@@ -24,7 +24,7 @@ func main() {
 	e.POST("/", web.NewOrder)
 	e.POST("/addOrder", web.AddOrderApi)
 	e.PUT("/addRandomOrder", web.AddRandomOrder)
-	e.GET("/submittedOrders/:status", web.GetSubmittedOrdersCount)
+	e.GET("/orderStatusCount/:status", web.GetSubmittedOrdersCount)
 
 	t := &web.Template{
 		Templates: template.Must(template.ParseGlob("web/index.html")),
