@@ -1,0 +1,16 @@
+apiVersion: skaffold/v2beta29
+kind: Config
+metadata:
+  name: job
+build:
+  artifacts:
+  - image: orders-job
+    context: .
+deploy:
+  kubectl:
+    manifests:
+    - ./kubernetes-manifests/*.yaml
+profiles:
+- name: cloudbuild
+  build:
+    local: {}

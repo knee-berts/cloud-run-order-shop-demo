@@ -1,0 +1,14 @@
+apiVersion: skaffold/v2beta29
+kind: Config
+requires:
+- path: ./run-web/
+- path: ./run-job/
+- path: ./run-worker/
+build:
+  local:
+    push: false
+    concurrency: 0
+profiles:
+- name: cloudbuild
+  build:
+    local: {}

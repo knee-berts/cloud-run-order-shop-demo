@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: orders-worker
+  labels:
+    app: orders
+    tier: worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: orders
+      tier: worker
+  template:
+    metadata:
+      labels:
+        app: orders
+        tier: worker
+    spec:
+      containers:
+      - name: worker
+        image: orders-worker
+        ports:
+        - name: debug
+          containerPort: 3000
+        env:
+        - name: APP_PORT
+          value: "8080"        
+        - name: SPANNER_URI
+          value: "{{.SPANNER_URI}}"

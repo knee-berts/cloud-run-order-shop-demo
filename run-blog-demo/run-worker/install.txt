@@ -1,0 +1,6 @@
+
+gcloud builds submit --pack image=gcr.io/seroter-project-base/seroter-run-worker
+
+{ "orderId": 107, "productId": 500, "customerId": 800, "quantity": 5, "fulfillmentHub": "BVE", "status": "In Process", "orderDate": "2022-06-06"}
+
+{ "orderId": 102 }
