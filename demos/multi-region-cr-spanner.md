@@ -13,7 +13,7 @@ git clone https://github.com/knee-berts/order-shop-demo.git
 2. **Set envars**
 
 ```bash
-PROJECT_ID = ##Best to use a clean project you have ownership of
+PROJECT_ID = ##Best to use a clean project you have ownership of.
 SPANNER_CONFIG = "nam9" ##Multi-region spanner configuration that works best for your location. 
 PRIMARY_REGION = "us-east4" ##Google Cloud Region you want the Spanner R/W Replica leader to live in.
 REGIONS=('us-east1' 'us-west1') ##Regions that the web service will be deployed
@@ -27,7 +27,7 @@ REGIONS=('us-east1' 'us-west1') ##Regions that the web service will be deployed
 ## Test
 1. **After a bit the global orders web link will be available at "https://orders-app.endpoints.$PROJECT_ID.cloud.goog". Create a few orders.**
 
-2. **There is an api that generate an order with random fields. Give it a go.**
+2. **There is an api that generates an order with random fields. Give it a go.**
 ```bash
 curl -X PUT https://orders-app.endpoints.${PROJECT_ID}.cloud.goog/addRandomOrder
 ```
@@ -80,7 +80,7 @@ curl -X POST -H "Content-Type: application/json" -d @post.json https://orders-ap
 Your output should look something like this. Notice that one order create wins while the other throws an error that the orderid already exists.
 ![screenshot](../assets/screenshot.png)
 
-6. **Now let's query the OrdersHistory table in Spanner so we can see the time stamp difference between that two attempted order creations.**
+6. **Now let's query the OrdersHistory table in Spanner so we can see the time stamp difference between the two attempted order creations.**
 ```bash
 gcloud spanner databases execute-sql --instance orders-${PROJECT_ID} orders-db \
     --sql="SELECT * FROM OrdersHistory WHERE OrderId = 1050" 
