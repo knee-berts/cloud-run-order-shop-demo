@@ -12,7 +12,7 @@ type Template struct {
 	Templates *template.Template
 }
 
-//implement echo interface
+// implement echo interface
 func (t *Template) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
 	return t.Templates.ExecuteTemplate(w, name, data)
 }
@@ -20,7 +20,7 @@ func (t *Template) Render(w io.Writer, name string, data interface{}, c echo.Con
 func GetHome(c echo.Context) error {
 
 	//call orders handler
-	orders := GetOrders()
+	orders := GetOrders(c)
 
 	//passing in the template name (not file name)
 	return c.Render(http.StatusOK, "home", orders)

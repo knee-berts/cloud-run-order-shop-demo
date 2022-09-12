@@ -1,7 +1,6 @@
 package web
 
 import (
-	"context"
 	"fmt"
 	"log"
 	"math/rand"
@@ -14,7 +13,6 @@ import (
 	"github.com/labstack/echo/v4"
 	"google.golang.org/api/iterator"
 	"google.golang.org/grpc/codes"
-	"seroter.com/serotershop/config"
 	"seroter.com/serotershop/model"
 	"seroter.com/serotershop/responses"
 )
@@ -22,32 +20,16 @@ import (
 //https://cloud.google.com/spanner/docs/getting-started/go#read_data_using_the_read_api
 //https://pkg.go.dev/cloud.google.com/go/spanner#section-readme
 
-func GetOrders() []*model.Order {
-
-	//data := []model.Order{
-	//	{OrderId: 100, ProductId: 500, CustomerId: 800, Quantity: 5, FulfillmentHub: "BVE", Status: "In Process", OrderDate: "2022-06-06"},
-	//	{OrderId: 101, ProductId: 510, CustomerId: 801, Quantity: 50, FulfillmentHub: "SVL", Status: "In Process", OrderDate: "2022-06-07"},
-	//	{OrderId: 102, ProductId: 501, CustomerId: 800, Quantity: 10, FulfillmentHub: "BVE", Status: "In Process", OrderDate: "2022-06-07"},
-	//}
+func GetOrders(c echo.Context) []*model.Order {
 
 	//create empty slice
 	var data []*model.Order
 
-	//set up context and client
-	ctx := context.Background()
-	// client := createSpannerClient(ctx)
-	db := config.EnvSpannerURI()
-	client, err := spanner.NewClient(ctx, db)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	defer client.Close()
+	ctx, client := getSpannerConnection(c)
 
 	stmt := spanner.Statement{
 		SQL: `SELECT OrderId, ProductId, CustomerId, Quantity, Status, OrderDate, FulfillmentHub, LastUpdateTime
 				FROM Orders ORDER BY LastUpdateTime DESC LIMIT 20`}
-	// iter := client.Single().Read(ctx, "Orders", spanner.AllKeys(), []string{"OrderId", "ProductId", "CustomerId", "Quantity", "Status", "OrderDate", "FulfillmentHub", "LastUpdateTime"})
 	iter := client.Single().Query(ctx, stmt)
 
 	defer iter.Stop()
@@ -80,11 +62,9 @@ func GetOrders() []*model.Order {
 }
 
 func AddOrder(c echo.Context) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	var order model.Order
 	var err error
-	defer cancel()
-	//need "name" value set on form field, not just ID
+
 	//retrieve values
 	order.OrderId, err = strconv.ParseInt(c.FormValue("orderid"), 10, 64)
 	if err != nil {
@@ -106,9 +86,9 @@ func AddOrder(c echo.Context) {
 	order.FulfillmentHub = c.FormValue("hub")
 	order.OrderDate = time.Now().Format("2006-01-02")
 
-	if err := updateOrder(ctx, order); err != nil {
+	if err := updateOrder(c, order); err != nil {
 		if spanner.ErrCode(err) == codes.AlreadyExists {
-			insertOrderHistory(ctx, order)
+			insertOrderHistory(c, order)
 			log.Printf("Order %v already exists: %v", order.OrderId, err)
 		}
 		log.Println(err)
@@ -116,9 +96,6 @@ func AddOrder(c echo.Context) {
 }
 
 func AddOrderApi(c echo.Context) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
 	var order model.Order
 
 	//validate the request body
@@ -133,9 +110,9 @@ func AddOrderApi(c echo.Context) error {
 	if validationErr := validate.Struct(&order); validationErr != nil {
 		return c.JSON(http.StatusBadRequest, responses.OrderResponse{Status: http.StatusBadRequest, Message: "error", Data: validationErr.Error()})
 	}
-	if err := updateOrder(ctx, order); err != nil {
+	if err := updateOrder(c, order); err != nil {
 		if spanner.ErrCode(err) == codes.AlreadyExists {
-			insertOrderHistory(ctx, order)
+			insertOrderHistory(c, order)
 			return c.JSON(http.StatusBadRequest, responses.OrderResponse{Status: http.StatusBadRequest, Message: "error", Data: err.Error()})
 		}
 		return c.JSON(http.StatusBadRequest, responses.OrderResponse{Status: http.StatusBadRequest, Message: "error", Data: err.Error()})
@@ -144,11 +121,9 @@ func AddOrderApi(c echo.Context) error {
 }
 
 func GetSubmittedOrdersCount(c echo.Context) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 999*time.Second)
-	defer cancel()
 	status := c.Param("status")
 	log.Println(status)
-	orders, err := ordersCountByStatus(ctx, status)
+	orders, err := ordersCountByStatus(c, status)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, responses.OrderResponse{Status: http.StatusBadRequest, Message: "error", Data: err.Error()})
 	}
@@ -156,10 +131,8 @@ func GetSubmittedOrdersCount(c echo.Context) error {
 }
 
 func AddRandomOrder(c echo.Context) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	var order model.Order
-	defer cancel()
-	//need "name" value set on form field, not just ID
+
 	//retrieve values
 	rand.Seed(time.Now().UnixNano())
 	order.OrderId = rand.Int63n(1000)
@@ -175,9 +148,9 @@ func AddRandomOrder(c echo.Context) error {
 	if validationErr := validate.Struct(&order); validationErr != nil {
 		return c.JSON(http.StatusBadRequest, responses.OrderResponse{Status: http.StatusBadRequest, Message: "error", Data: validationErr.Error()})
 	}
-	if err := updateOrder(ctx, order); err != nil {
+	if err := updateOrder(c, order); err != nil {
 		if spanner.ErrCode(err) == codes.AlreadyExists {
-			insertOrderHistory(ctx, order)
+			insertOrderHistory(c, order)
 			return c.JSON(http.StatusBadRequest, responses.OrderResponse{Status: http.StatusBadRequest, Message: "error", Data: err.Error()})
 		}
 		return c.JSON(http.StatusBadRequest, responses.OrderResponse{Status: http.StatusBadRequest, Message: "error", Data: err.Error()})

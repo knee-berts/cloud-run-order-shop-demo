@@ -11,14 +11,13 @@ import (
 	"seroter.com/serotershop/web"
 )
 
-//https://gowebexamples.com/templates/
-
 func main() {
 
 	fmt.Println("started up")
 
 	e := echo.New()
 	e.Use(middleware.Logger())
+	e.Use(web.SetSpannerConnection)
 
 	e.GET("/", web.GetHome)
 	e.POST("/", web.NewOrder)

@@ -6,74 +6,73 @@ import (
 	"log"
 
 	"cloud.google.com/go/spanner"
+	"github.com/labstack/echo/v4"
 	"google.golang.org/api/iterator"
 	"seroter.com/serotershop/config"
 	"seroter.com/serotershop/model"
 )
 
-// func createSpannerClient(ctx context.Context) *spanner.Client {
-// 	db := config.EnvSpannerURI()
-// 	client, err := spanner.NewClient(ctx, db)
-// 	if err != nil {
-// 		log.Fatal(err)
-// 	}
+type SpannerContext struct {
+	echo.Context
+}
 
-// 	defer client.Close()
-// 	return client
-// }
+// Create Middleware that sets Spanner Connection
+func SetSpannerConnection(next echo.HandlerFunc) echo.HandlerFunc {
 
-func updateOrder(ctx context.Context, order model.Order) error {
-	//set up context and client
-	db := config.EnvSpannerURI()
-	client, err := spanner.NewClient(ctx, db)
-	if err != nil {
-		log.Fatal(err)
+	// return ctx, client
+	return func(c echo.Context) error {
+		ctx := context.Background()
+		db := config.EnvSpannerURI()
+		client, err := spanner.NewClient(ctx, db)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer client.Close()
+		c.Set("spanner_client", *client)
+		c.Set("spanner_context", ctx)
+		return next(c)
 	}
+}
 
-	defer client.Close()
+// Helper function to retrieve spanner client and context
+func getSpannerConnection(c echo.Context) (context.Context, spanner.Client) {
+	return c.Get("spanner_context").(context.Context),
+		c.Get("spanner_client").(spanner.Client)
+}
 
-	//do database write
+func updateOrder(c echo.Context, order model.Order) error {
+	ctx, client := getSpannerConnection(c)
+
 	ordersColumns := []string{"OrderId", "ProductId", "CustomerId", "Quantity", "Status", "FulfillmentHub", "OrderDate", "LastUpdateTime"}
 	ordersHistoryColumns := []string{"OrderId", "ProductId", "CustomerId", "Quantity", "Status", "FulfillmentHub", "OrderDate", "TimeStamp"}
 	m := []*spanner.Mutation{
 		spanner.Insert("Orders", ordersColumns, []interface{}{order.OrderId, order.ProductId, order.CustomerId, order.Quantity, order.Status, order.FulfillmentHub, order.OrderDate, spanner.CommitTimestamp}),
 		spanner.InsertOrUpdate("OrdersHistory", ordersHistoryColumns, []interface{}{order.OrderId, order.ProductId, order.CustomerId, order.Quantity, order.Status, order.FulfillmentHub, order.OrderDate, spanner.CommitTimestamp}),
 	}
-	_, err = client.Apply(ctx, m)
+	_, err := client.Apply(ctx, m)
 	if err != nil {
 		log.Println(err)
 	}
 	return err
 }
 
-func insertOrderHistory(ctx context.Context, order model.Order) error {
-	db := config.EnvSpannerURI()
-	client, err := spanner.NewClient(ctx, db)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	defer client.Close()
+func insertOrderHistory(c echo.Context, order model.Order) error {
+	ctx, client := getSpannerConnection(c)
 
 	ordersHistoryColumns := []string{"OrderId", "ProductId", "CustomerId", "Quantity", "Status", "FulfillmentHub", "OrderDate", "TimeStamp"}
 	m := []*spanner.Mutation{
 		spanner.InsertOrUpdate("OrdersHistory", ordersHistoryColumns, []interface{}{order.OrderId, order.ProductId, order.CustomerId, order.Quantity, "DUPLICATE", order.FulfillmentHub, order.OrderDate, spanner.CommitTimestamp}),
 	}
-	_, err = client.Apply(ctx, m)
+	_, err := client.Apply(ctx, m)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func listOrdersByStatus(ctx context.Context, status string) ([]*model.Order, error) {
-	db := config.EnvSpannerURI()
-	client, err := spanner.NewClient(ctx, db)
-	if err != nil {
-		log.Fatal(err)
-	}
+func listOrdersByStatus(c echo.Context, status string) ([]*model.Order, error) {
+	ctx, client := getSpannerConnection(c)
 
-	defer client.Close()
 	iter := client.Single().Query(ctx, spanner.NewStatement(fmt.Sprintf("SELECT OrderId FROM Orders WHERE Status = '%s'", status)))
 	defer iter.Stop()
 
@@ -104,13 +103,8 @@ func listOrdersByStatus(ctx context.Context, status string) ([]*model.Order, err
 	return data, nil
 }
 
-func ordersCountByStatus(ctx context.Context, status string) (*model.OrdersStatus, error) {
-	db := config.EnvSpannerURI()
-	client, err := spanner.NewClient(ctx, db)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer client.Close()
+func ordersCountByStatus(c echo.Context, status string) (*model.OrdersStatus, error) {
+	ctx, client := getSpannerConnection(c)
 
 	ro := client.ReadOnlyTransaction()
 	defer ro.Close()

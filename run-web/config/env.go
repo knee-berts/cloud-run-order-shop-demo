@@ -6,6 +6,11 @@ import (
 	"github.com/joho/godotenv"
 )
 
+// type Config struct {
+// 	Server  ServerConfig
+// 	Spanner SpannerConfig
+// }
+
 func EnvSpannerURI() string {
 	err := godotenv.Load()
 	if err != nil {
