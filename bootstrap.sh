@@ -28,20 +28,14 @@ echo "PROJECT_NUMBER:${PROJECT_NUMBER}"
 # printf ' ->%s\n' "${CR_REGIONS[@]}"
 
 ## Enable GCP APIs
-# unset GCP_APIS
-GCP_APIS=(
-    "artifactregistry.googleapis.com"
-    "spanner.googleapis.com"
-    "compute.googleapis.com"
-    "cloudbuild.googleapis.com"
-    "run.googleapis.com"
-    "cloudscheduler.googleapis.com"
-)
-
-for API in "${GCP_APIS[@]}"; do
-    echo "enabling $API"
-    gcloud services enable ${API} --project ${PROJECT_ID}
-done
+gcloud services enable \
+    --project=${PROJECT_ID} \
+    artifactregistry.googleapis.com
+    spanner.googleapis.com
+    compute.googleapis.com
+    cloudbuild.googleapis.com
+    run.googleapis.com
+    cloudscheduler.googleapis.com
 
 ## Create Spanner Instance, DB, and Tables.
 if [[ $(gcloud spanner instances describe orders-${PROJECT_ID} --project ${PROJECT_ID}) ]]; then
