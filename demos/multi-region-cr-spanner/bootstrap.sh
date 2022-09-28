@@ -28,13 +28,12 @@ echo "PROJECT_NUMBER:${PROJECT_NUMBER}"
 # printf ' ->%s\n' "${CR_REGIONS[@]}"
 
 ## Enable GCP APIs
-gcloud services enable \
-    --project=${PROJECT_ID} \
-    artifactregistry.googleapis.com
-    spanner.googleapis.com
-    compute.googleapis.com
-    cloudbuild.googleapis.com
-    run.googleapis.com
+gcloud services enable --project=${PROJECT_ID} \
+    artifactregistry.googleapis.com \
+    spanner.googleapis.com \
+    compute.googleapis.com \
+    cloudbuild.googleapis.com \
+    run.googleapis.com \
     cloudscheduler.googleapis.com
 
 ## Create Spanner Instance, DB, and Tables.
@@ -51,7 +50,7 @@ else
     gcloud spanner databases create orders-db --project ${PROJECT_ID} \
         --instance=orders-${PROJECT_ID} \
         --database-dialect=GOOGLE_STANDARD_SQL \
-        --ddl-file=tables.ddl
+        --ddl-file=../../tables.ddl
 fi
 
 ## Setup GCLB, DNS and Cert for Serverless NEGs
@@ -161,12 +160,11 @@ fi
 
 gcloud auth configure-docker ${PRIMARY_REGION}-docker.pkg.dev --project ${PROJECT_ID}
 
-cd run-web
-gcloud builds submit --region=${PRIMARY_REGION} --project ${PROJECT_ID} --tag "${PRIMARY_REGION}-docker.pkg.dev/${PROJECT_ID}/orders-repo/orders-web" run-web
+gcloud builds submit --region=${PRIMARY_REGION} --project ${PROJECT_ID} --tag "${PRIMARY_REGION}-docker.pkg.dev/${PROJECT_ID}/orders-repo/orders-web" ../../run-web
 
-gcloud builds submit --region=${PRIMARY_REGION} --project ${PROJECT_ID} --tag "${PRIMARY_REGION}-docker.pkg.dev/${PROJECT_ID}/orders-repo/orders-job" run-job
+gcloud builds submit --region=${PRIMARY_REGION} --project ${PROJECT_ID} --tag "${PRIMARY_REGION}-docker.pkg.dev/${PROJECT_ID}/orders-repo/orders-job" ../../run-job
 
-gcloud builds submit --region=${PRIMARY_REGION} --project ${PROJECT_ID} --tag "${PRIMARY_REGION}-docker.pkg.dev/${PROJECT_ID}/orders-repo/orders-worker" run-worker
+gcloud builds submit --region=${PRIMARY_REGION} --project ${PROJECT_ID} --tag "${PRIMARY_REGION}-docker.pkg.dev/${PROJECT_ID}/orders-repo/orders-worker" ../../run-worker
 
 
 # Deploy Web services to Cloudrun in all Regions

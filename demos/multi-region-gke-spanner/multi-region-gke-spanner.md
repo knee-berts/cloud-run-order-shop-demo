@@ -13,9 +13,9 @@ git clone https://github.com/knee-berts/order-shop-demo.git
 2. **Set envars**
 
 ```bash
-PROJECT_ID = ##Best to use a clean project you have ownership of.
-SPANNER_CONFIG = "nam9" ##Multi-region spanner configuration that works best for your location. 
-PRIMARY_REGION = "us-east4" ##Google Cloud Region you want the Spanner R/W Replica leader to live in.
+PROJECT_ID= ##Best to use a clean project you have ownership of.
+SPANNER_CONFIG= "nam9" ##Multi-region spanner configuration that works best for your location. 
+PRIMARY_REGION= "us-east4" ##Google Cloud Region you want the Spanner R/W Replica leader to live in.
 REGIONS=('us-east1' 'us-west1') ##Regions that the web service will be deployed
 ```
 

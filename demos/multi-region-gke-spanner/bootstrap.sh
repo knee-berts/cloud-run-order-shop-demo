@@ -25,13 +25,12 @@ PROJECT_NUMBER=$(gcloud projects describe ${PROJECT_ID} --format="value(projectN
 echo "PROJECT_NUMBER:${PROJECT_NUMBER}"
 
 ## Enable GCP APIs
-gcloud services enable \
-    --project=${PROJECT_ID} \
-    artifactregistry.googleapis.com
-    spanner.googleapis.com
-    compute.googleapis.com
-    cloudbuild.googleapis.com
-    run.googleapis.com
+gcloud services enable --project=${PROJECT_ID} \
+    artifactregistry.googleapis.com \
+    spanner.googleapis.com \
+    compute.googleapis.com \
+    cloudbuild.googleapis.com \
+    run.googleapis.com \
     cloudscheduler.googleapis.com
 
 ## Create Spanner Instance, DB, and Tables.
@@ -48,7 +47,7 @@ else
     gcloud spanner databases create orders-db --project ${PROJECT_ID} \
         --instance=orders-${PROJECT_ID} \
         --database-dialect=GOOGLE_STANDARD_SQL \
-        --ddl-file=tables.ddl
+        --ddl-file=../../tables.ddl
 fi
 
 ## Setup GCLB, DNS and Cert for Serverless NEGs
@@ -115,6 +114,25 @@ for SA in "${SERVICE_ACCOUNTS[@]}"; do
             --role "roles/spanner.databaseUser"
     fi
 done
+
+## Setup Artifact Repository for Container images and build and push images
+if [[ $(gcloud artifacts repositories describe orders-repo --location ${PRIMARY_REGION} --project ${PROJECT_ID}) ]]; then
+    echo "Artifact Registry for the orders-app already exists"
+else
+    gcloud artifacts repositories create orders-repo --repository-format=docker \
+        --location=${PRIMARY_REGION} --description="Docker repository" --project ${PROJECT_ID}
+fi
+
+gcloud auth configure-docker ${PRIMARY_REGION}-docker.pkg.dev --project ${PROJECT_ID}
+
+gcloud builds submit --region=${PRIMARY_REGION} --project ${PROJECT_ID} --tag "${PRIMARY_REGION}-docker.pkg.dev/${PROJECT_ID}/orders-repo/orders-web" ../../run-web
+
+gcloud builds submit --region=${PRIMARY_REGION} --project ${PROJECT_ID} --tag "${PRIMARY_REGION}-docker.pkg.dev/${PROJECT_ID}/orders-repo/orders-job" ../../run-job
+
+gcloud builds submit --region=${PRIMARY_REGION} --project ${PROJECT_ID} --tag "${PRIMARY_REGION}-docker.pkg.dev/${PROJECT_ID}/orders-repo/orders-worker" ../../run-worker
+
+
+export SPANNER_URI="projects/${PROJECT_ID}/instances/orders-${PROJECT_ID}/databases/orders-db"
 
 ## Deploy Worker in Primary Region
 if [[ $(gcloud run services describe orders-worker-${PRIMARY_REGION} --region ${PRIMARY_REGION} --project ${PROJECT_ID}) ]]; then
