@@ -6,6 +6,6 @@ Hey there. This repo hosts a three service demo app started by Richard Seroter. 
 If you want to learn more about the applications architecture check out Richard's [blog](https://seroter.com/2022/06/09/running-serverless-web-batch-and-worker-apps-with-google-cloud-run-and-cloud-spanner/).
 
 ## Demos
-- [Multi-region Cloud Run and Spanner](/demos/multi-region-cr-spanner.md)
+- [Multi-region Cloud Run and Spanner](/demos/multi-region-cr-spanner/multi-region-cr-spanner.md)
 - CI with Cloud Code - WIP
 - Multi-region GKE and Spanner - WIP

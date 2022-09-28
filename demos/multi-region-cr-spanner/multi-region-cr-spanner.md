@@ -1,4 +1,4 @@
-# Multi Region Orders App
+# Multi Region Orders App with Cloud Run and Spanner
 This demo builds the Orders Shop app in multiple Cloud Run services across multiple regions and puts them behind a Global Loadbalancer so that you can have one endpoint that distributes users to the closest Cloud Run service.
 
 ## Pre-reqs
@@ -78,7 +78,7 @@ tmux
 curl -X POST -H "Content-Type: application/json" -d @post.json https://orders-app.endpoints.${PROJECT_ID}.cloud.goog/addOrder
 ```
 Your output should look something like this. Notice that one order create wins while the other throws an error that the orderid already exists.
-![screenshot](../assets/screenshot.png)
+![screenshot](../../assets/screenshot.png)
 
 6. **Now let's query the OrdersHistory table in Spanner so we can see the time stamp difference between the two attempted order creations.**
 ```bash
@@ -86,7 +86,7 @@ gcloud spanner databases execute-sql --instance orders-${PROJECT_ID} orders-db \
     --sql="SELECT * FROM OrdersHistory WHERE OrderId = 1050" 
 ```
 You should see something like this.
-![screenshot2](../assets/screenshot2.png)
+![screenshot2](../../assets/screenshot2.png)
 
 7. **Throw some load at it by using [hey](https://github.com/rakyll/hey) to call the random orders generator api**
 ```bash
