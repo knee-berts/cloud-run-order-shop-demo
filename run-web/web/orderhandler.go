@@ -20,15 +20,17 @@ import (
 //https://cloud.google.com/spanner/docs/getting-started/go#read_data_using_the_read_api
 //https://pkg.go.dev/cloud.google.com/go/spanner#section-readme
 
-func GetOrders(c echo.Context) []*model.Order {
+func GetOrders(c echo.Context) model.Orders {
 
 	//create empty slice
-	var data []*model.Order
+	var data model.Orders
+
+	data.PodZone = getPodZone(c)
 
 	ctx, client := getSpannerConnection(c)
 
 	stmt := spanner.Statement{
-		SQL: `SELECT OrderId, ProductId, CustomerId, Quantity, Status, OrderDate, FulfillmentHub, LastUpdateTime
+		SQL: `SELECT OrderId, ProductId, CustomerId, Quantity, Status, OrderDate, FulfillmentHub, LastUpdateZone, LastUpdateTime
 				FROM Orders ORDER BY LastUpdateTime DESC LIMIT 20`}
 	iter := client.Single().Query(ctx, stmt)
 
@@ -53,7 +55,7 @@ func GetOrders(c echo.Context) []*model.Order {
 		}
 
 		//append to collection
-		data = append(data, o)
+		data.Orders = append(data.Orders, o)
 
 	}
 
@@ -66,6 +68,9 @@ func AddOrder(c echo.Context) {
 	var err error
 
 	//retrieve values
+	if err != nil {
+		log.Println(err)
+	}
 	order.OrderId, err = strconv.ParseInt(c.FormValue("orderid"), 10, 64)
 	if err != nil {
 		log.Println(err)
@@ -84,6 +89,7 @@ func AddOrder(c echo.Context) {
 	}
 	order.Status = c.FormValue("status")
 	order.FulfillmentHub = c.FormValue("hub")
+	order.LastUpdateZone = getPodZone(c)
 	order.OrderDate = time.Now().Format("2006-01-02")
 
 	if err := updateOrder(c, order); err != nil {
@@ -104,6 +110,7 @@ func AddOrderApi(c echo.Context) error {
 	}
 
 	order.OrderDate = time.Now().Format("2006-01-02")
+	order.LastUpdateZone = getPodZone(c)
 
 	//use the validator library to validate required fields
 	var validate = validator.New()
@@ -141,6 +148,7 @@ func AddRandomOrder(c echo.Context) error {
 	order.Quantity = rand.Int63n(1000)
 	order.Status = "SUBMITTED"
 	order.FulfillmentHub = "NYC"
+	order.LastUpdateZone = getPodZone(c)
 	order.OrderDate = time.Now().Format("2006-01-02")
 	log.Println(order.OrderId)
 

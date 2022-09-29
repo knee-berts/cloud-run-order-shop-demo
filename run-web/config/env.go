@@ -1,6 +1,7 @@
 package config
 
 import (
+	"log"
 	"os"
 
 	"github.com/joho/godotenv"
@@ -14,7 +15,7 @@ import (
 func EnvSpannerURI() string {
 	err := godotenv.Load()
 	if err != nil {
-		return os.Getenv("SPANNER_URI")
+		log.Println(err)
 	}
 	return os.Getenv("SPANNER_URI")
 }
@@ -22,7 +23,7 @@ func EnvSpannerURI() string {
 func EnvAppPort() string {
 	err := godotenv.Load()
 	if err != nil {
-		return os.Getenv("APP_PORT")
+		log.Println(err)
 	}
 	return os.Getenv("APP_PORT")
 }

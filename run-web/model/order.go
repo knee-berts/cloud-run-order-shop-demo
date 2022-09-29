@@ -10,7 +10,13 @@ type Order struct {
 	Status         string
 	OrderDate      string
 	FulfillmentHub string
+	LastUpdateZone string
 	LastUpdateTime time.Time
+}
+
+type Orders struct {
+	Orders  []*Order
+	PodZone string
 }
 
 type OrdersStatus struct {

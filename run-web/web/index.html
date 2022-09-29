@@ -8,7 +8,7 @@
         <div class="container">
             <div class="row pt-5" style="background-color:white">
                 <div class="col-md-2"></div>
-                <div class="col-md-8 text-center"><h2>Order Tracker</h2></div>
+                <div class="col-md-8 text-center"><h2>Order Tracker from a container running in {{.PodZone}}</h2></div>
                 <div class="col-md-2"></div>
             </div>
             <div class="row p-5" style="background-color:white">
@@ -24,11 +24,12 @@
                                 <th>Status</th>
                                 <th>Order Date</th>
                                 <th>Fulfillment Hub</th>
-                                <th>LastUpdateTime</th> 
+                                <th>Last Update Zone</th>
+                                <th>Last Update Time</th>
                             </tr>
                         </thead>
                         <tbody>
-                        {{range .}}
+                        {{range .Orders}}
                             <tr>
                                 <td>{{.OrderId}}</td>
                                 <td>{{.ProductId}}</td>
@@ -37,6 +38,7 @@
                                 <td>{{.Status}}</td>
                                 <td>{{.OrderDate}}</td>
                                 <td>{{.FulfillmentHub}}</td>
+                                <td>{{.LastUpdateZone}}</td>
                                 <td>{{.LastUpdateTime}}</td>
                             </tr>
                         {{end}}

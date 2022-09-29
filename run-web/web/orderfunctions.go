@@ -1,6 +1,7 @@
 package web
 
 import (
+	"cloud.google.com/go/compute/metadata"
 	"context"
 	"fmt"
 	"log"
@@ -28,10 +29,21 @@ func SetSpannerConnection(next echo.HandlerFunc) echo.HandlerFunc {
 			log.Fatal(err)
 		}
 		defer client.Close()
+		//get pods zone
+		zone, err := metadata.Zone()
+		if err != nil {
+			log.Println(err)
+		}
 		c.Set("spanner_client", *client)
 		c.Set("spanner_context", ctx)
+		c.Set("pod_zone", zone)
 		return next(c)
 	}
+}
+
+// Helper function to retrieve serving pods zone
+func getPodZone(c echo.Context) string {
+	return c.Get("pod_zone").(string)
 }
 
 // Helper function to retrieve spanner client and context
@@ -43,11 +55,11 @@ func getSpannerConnection(c echo.Context) (context.Context, spanner.Client) {
 func updateOrder(c echo.Context, order model.Order) error {
 	ctx, client := getSpannerConnection(c)
 
-	ordersColumns := []string{"OrderId", "ProductId", "CustomerId", "Quantity", "Status", "FulfillmentHub", "OrderDate", "LastUpdateTime"}
-	ordersHistoryColumns := []string{"OrderId", "ProductId", "CustomerId", "Quantity", "Status", "FulfillmentHub", "OrderDate", "TimeStamp"}
+	ordersColumns := []string{"OrderId", "ProductId", "CustomerId", "Quantity", "Status", "FulfillmentHub", "OrderDate", "LastUpdateZone", "LastUpdateTime"}
+	ordersHistoryColumns := []string{"OrderId", "ProductId", "CustomerId", "Quantity", "Status", "FulfillmentHub", "OrderDate", "LastUpdateZone", "TimeStamp"}
 	m := []*spanner.Mutation{
-		spanner.Insert("Orders", ordersColumns, []interface{}{order.OrderId, order.ProductId, order.CustomerId, order.Quantity, order.Status, order.FulfillmentHub, order.OrderDate, spanner.CommitTimestamp}),
-		spanner.InsertOrUpdate("OrdersHistory", ordersHistoryColumns, []interface{}{order.OrderId, order.ProductId, order.CustomerId, order.Quantity, order.Status, order.FulfillmentHub, order.OrderDate, spanner.CommitTimestamp}),
+		spanner.Insert("Orders", ordersColumns, []interface{}{order.OrderId, order.ProductId, order.CustomerId, order.Quantity, order.Status, order.FulfillmentHub, order.OrderDate, order.LastUpdateZone, spanner.CommitTimestamp}),
+		spanner.InsertOrUpdate("OrdersHistory", ordersHistoryColumns, []interface{}{order.OrderId, order.ProductId, order.CustomerId, order.Quantity, order.Status, order.FulfillmentHub, order.OrderDate, order.LastUpdateZone, spanner.CommitTimestamp}),
 	}
 	_, err := client.Apply(ctx, m)
 	if err != nil {
@@ -61,7 +73,7 @@ func insertOrderHistory(c echo.Context, order model.Order) error {
 
 	ordersHistoryColumns := []string{"OrderId", "ProductId", "CustomerId", "Quantity", "Status", "FulfillmentHub", "OrderDate", "TimeStamp"}
 	m := []*spanner.Mutation{
-		spanner.InsertOrUpdate("OrdersHistory", ordersHistoryColumns, []interface{}{order.OrderId, order.ProductId, order.CustomerId, order.Quantity, "DUPLICATE", order.FulfillmentHub, order.OrderDate, spanner.CommitTimestamp}),
+		spanner.InsertOrUpdate("OrdersHistory", ordersHistoryColumns, []interface{}{order.OrderId, order.ProductId, order.CustomerId, order.Quantity, "DUPLICATE", order.FulfillmentHub, order.OrderDate, order.LastUpdateZone, spanner.CommitTimestamp}),
 	}
 	_, err := client.Apply(ctx, m)
 	if err != nil {

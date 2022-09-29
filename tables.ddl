@@ -5,6 +5,7 @@ CREATE TABLE Orders (
     Quantity INT64,
     OrderDate STRING(60),   
     FulfillmentHub STRING(3),
+    LastUpdateZone String(20),
     LastUpdateTime TIMESTAMP NOT NULL OPTIONS(allow_commit_timestamp=true),
     Status STRING(20),
 ) PRIMARY KEY(OrderId);
@@ -16,6 +17,7 @@ CREATE TABLE OrdersHistory (
     Quantity INT64,
     OrderDate STRING(60),   
     FulfillmentHub STRING(3),
+    LastUpdateZone String(20),
     TimeStamp TIMESTAMP NOT NULL OPTIONS(allow_commit_timestamp=true),
     Status STRING(20),
 ) PRIMARY KEY(OrderId, TimeStamp),
